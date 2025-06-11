@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'models/transaction.dart';
-import 'screens/dashboard_screen.dart';
+import 'screens/home_screen.dart';
 
 void main() {
   runApp(const MoneyMateApp());
@@ -11,7 +11,6 @@ class MoneyMateApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Dummy data untuk transaksi awal
     final List<Transaction> dummyTransactions = [
       Transaction(
         id: 't1',
@@ -39,7 +38,7 @@ class MoneyMateApp extends StatelessWidget {
         primarySwatch: Colors.green,
         useMaterial3: true,
       ),
-      home: DashboardScreen(initialTransactions: dummyTransactions),
+      home: HomeScreen(initialTransactions: dummyTransactions),
       debugShowCheckedModeBanner: false,
     );
   }
