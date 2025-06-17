@@ -9,15 +9,6 @@ class MasterDataScreen extends StatefulWidget {
 }
 
 class _MasterDataScreenState extends State<MasterDataScreen> {
-  late List<String> _categories;
-
-  @override
-  void initState() {
-    super.initState();
-    // Salin dari expenseCategories (jangan pakai const List langsung)
-    _categories = List<String>.from(expenseCategories);
-  }
-
   void _addCategory() async {
     final controller = TextEditingController();
     final result = await showDialog<String>(
@@ -40,7 +31,7 @@ class _MasterDataScreenState extends State<MasterDataScreen> {
             child: const Text('Tambah'),
             onPressed: () {
               final text = controller.text.trim();
-              if (text.isNotEmpty && !_categories.contains(text)) {
+              if (text.isNotEmpty && !expenseCategories.contains(text)) {
                 Navigator.pop(ctx, text);
               }
             },
@@ -50,7 +41,7 @@ class _MasterDataScreenState extends State<MasterDataScreen> {
     );
     if (result != null) {
       setState(() {
-        _categories.add(result);
+        expenseCategories.add(result);
       });
     }
   }
@@ -69,11 +60,11 @@ class _MasterDataScreenState extends State<MasterDataScreen> {
         ],
       ),
       body: ListView.builder(
-        itemCount: _categories.length,
+        itemCount: expenseCategories.length,
         itemBuilder: (context, index) {
           return ListTile(
             leading: const Icon(Icons.label_outline),
-            title: Text(_categories[index]),
+            title: Text(expenseCategories[index]),
           );
         },
       ),

@@ -1,4 +1,4 @@
-const List<String> expenseCategories = [
+List<String> expenseCategories = [
   'Makanan & Minuman',
   'Transportasi',
   'Hiburan',
