@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:fl_chart/fl_chart.dart';
 import '../models/transaction.dart';
 import '../models/category.dart';
 import '../db/database_helper.dart';
@@ -84,6 +85,51 @@ class _SearchTransactionScreenState extends State<SearchTransactionScreen> {
     }
   }
 
+  Widget buildPieChart(List<TransactionModel> filteredTransactions, List<Category> allCategories) {
+    // Hitung total nominal per kategori
+    final Map<String, double> categoryTotals = {};
+    for (var cat in allCategories) {
+      categoryTotals[cat.nama] = 0;
+    }
+    for (var tr in filteredTransactions) {
+      categoryTotals[tr.kategori] = (categoryTotals[tr.kategori] ?? 0) + tr.nominal * (tr.isPemasukan ? 1 : -1);
+    }
+
+    // Hanya tampilkan kategori dengan nominal != 0
+    final entries = categoryTotals.entries.where((e) => e.value.abs() > 0).toList();
+
+    if (entries.isEmpty) {
+      return const Center(child: Text('Tidak ada data untuk pie chart'));
+    }
+
+    final colors = [
+      Colors.blue, Colors.red, Colors.green, Colors.orange, Colors.purple,
+      Colors.teal, Colors.brown, Colors.cyan, Colors.amber, Colors.pink,
+    ];
+
+    final total = entries.fold<double>(0, (sum, e) => sum + e.value.abs());
+
+    return SizedBox(
+      height: 200,
+      child: PieChart(
+        PieChartData(
+          sections: List.generate(entries.length, (i) {
+            final entry = entries[i];
+            return PieChartSectionData(
+              color: colors[i % colors.length],
+              value: entry.value.abs(),
+              title: '${entry.key}\n${(entry.value.abs() / total * 100).toStringAsFixed(1)}%',
+              radius: 60,
+              titleStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+            );
+          }),
+          sectionsSpace: 2,
+          centerSpaceRadius: 32,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     String weekLabel = 'Semua waktu';
@@ -98,7 +144,6 @@ class _SearchTransactionScreenState extends State<SearchTransactionScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            // Dropdown kategori
             DropdownButtonFormField<Category>(
               value: _selectedCategory,
               decoration: const InputDecoration(labelText: 'Filter Kategori'),
@@ -118,7 +163,6 @@ class _SearchTransactionScreenState extends State<SearchTransactionScreen> {
               },
             ),
             const SizedBox(height: 8),
-            // Filter minggu
             Row(
               children: [
                 Expanded(child: Text(weekLabel)),
@@ -141,6 +185,8 @@ class _SearchTransactionScreenState extends State<SearchTransactionScreen> {
                   )
               ],
             ),
+            const SizedBox(height: 16),
+            buildPieChart(_filteredTransactions, _allCategories),
             const SizedBox(height: 16),
             Expanded(
               child: _filteredTransactions.isEmpty

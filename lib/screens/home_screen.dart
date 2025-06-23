@@ -2,11 +2,9 @@ import 'package:flutter/material.dart';
 import 'dashboard_screen.dart';
 import 'filter_search_screen.dart';
 import 'master_data_screen.dart';
-import '../models/transaction.dart';
 
 class HomeScreen extends StatefulWidget {
-  final List<Transaction> initialTransactions;
-  const HomeScreen({Key? key, required this.initialTransactions}) : super(key: key);
+  const HomeScreen({Key? key}) : super(key: key);
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -18,8 +16,8 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final screens = [
-      DashboardScreen(initialTransactions: widget.initialTransactions),
-      const FilterSearchScreen(),
+      const DashboardScreen(),
+      const SearchTransactionScreen(),
       const MasterDataScreen(),
     ];
 
