@@ -1,14 +1,17 @@
 name: moneymate_project
 description: "A new Flutter project."
-publish_to: 'none'
-version: 0.1.0
+publish_to: "none"
+version: 1.0.0
 
 environment:
-  sdk: ^3.7.2
+  sdk: ">=3.0.0 <4.0.0"
 
 dependencies:
   flutter:
     sdk: flutter
+  sqflite: ^2.3.2
+  path_provider: ^2.1.2
+  path: ^1.9.0
   intl: ^0.18.1
   fl_chart: ^0.66.0
 

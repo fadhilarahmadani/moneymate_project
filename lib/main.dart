@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'models/transaction.dart';
 import 'screens/home_screen.dart';
 
 void main() {
@@ -11,35 +10,15 @@ class MoneyMateApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final List<Transaction> dummyTransactions = [
-      Transaction(
-        id: 't1',
-        judul: 'Gaji Bulanan',
-        nominal: 5000000,
-        tanggal: DateTime.now().subtract(const Duration(days: 2)),
-        kategori: 'Pemasukan',
-        deskripsi: 'Gaji bulan Juni',
-        isPemasukan: true,
-      ),
-      Transaction(
-        id: 't2',
-        judul: 'Makan Siang',
-        nominal: 25000,
-        tanggal: DateTime.now().subtract(const Duration(days: 1)),
-        kategori: 'Makanan & Minuman',
-        deskripsi: '',
-        isPemasukan: false,
-      ),
-    ];
-
     return MaterialApp(
       title: 'MoneyMate',
       theme: ThemeData(
         primarySwatch: Colors.green,
         useMaterial3: true,
       ),
-      home: HomeScreen(initialTransactions: dummyTransactions),
+      home: const HomeScreen(),
       debugShowCheckedModeBanner: false,
     );
   }
 }
+// ini 
