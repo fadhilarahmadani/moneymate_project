@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:moneymate_project/screens/search_transaction_screen.dart';
 import 'dashboard_screen.dart';
-import 'filter_search_screen.dart';
 import 'master_data_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -27,8 +27,10 @@ class _HomeScreenState extends State<HomeScreen> {
         currentIndex: _selectedIndex,
         onTap: (index) => setState(() => _selectedIndex = index),
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Dashboard'),
-          BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Filter/Search'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.dashboard), label: 'Dashboard'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.search), label: 'Filter/Search'),
           BottomNavigationBarItem(icon: Icon(Icons.storage), label: 'Kategori'),
         ],
       ),
