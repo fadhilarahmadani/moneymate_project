@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:fl_chart/fl_chart.dart';
 import '../models/transaction.dart';
 import '../db/database_helper.dart';
 import 'add_transaction_screen.dart';
@@ -84,6 +85,60 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
+  Widget buildIncomeExpensePieChart(List<TransactionModel> transactions) {
+    double pemasukan = 0;
+    double pengeluaran = 0;
+
+    for (var tr in transactions) {
+      if (tr.isPemasukan) {
+        pemasukan += tr.nominal;
+      } else {
+        pengeluaran += tr.nominal;
+      }
+    }
+
+    if (pemasukan == 0 && pengeluaran == 0) {
+      return const Padding(
+        padding: EdgeInsets.only(top: 12.0, bottom: 16),
+        child: Center(child: Text('Tidak ada data pemasukan/pengeluaran')),
+      );
+    }
+
+    final total = pemasukan + pengeluaran;
+    final sections = <PieChartSectionData>[
+      if (pemasukan > 0)
+        PieChartSectionData(
+          color: Colors.green,
+          value: pemasukan,
+          title: 'Pemasukan\n${(pemasukan / total * 100).toStringAsFixed(1)}%',
+          radius: 55,
+          titleStyle: const TextStyle(fontSize: 13, color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+      if (pengeluaran > 0)
+        PieChartSectionData(
+          color: Colors.red,
+          value: pengeluaran,
+          title: 'Pengeluaran\n${(pengeluaran / total * 100).toStringAsFixed(1)}%',
+          radius: 55,
+          titleStyle: const TextStyle(fontSize: 13, color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16.0),
+      child: SizedBox(
+        height: 180,
+        child: PieChart(
+          PieChartData(
+            sections: sections,
+            sectionsSpace: 3,
+            centerSpaceRadius: 32,
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -115,7 +170,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            // PIE CHART PEMASUKAN/ PENGELUARAN
+            buildIncomeExpensePieChart(transactions),
+            const SizedBox(height: 8),
             const Text(
               'Transaksi Terbaru',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),

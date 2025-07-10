@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'screens/home_screen.dart';
+import 'screens/splash_screen.dart';
 
 void main() {
   runApp(const MoneyMateApp());
@@ -16,9 +16,8 @@ class MoneyMateApp extends StatelessWidget {
         primarySwatch: Colors.green,
         useMaterial3: true,
       ),
-      home: const HomeScreen(),
+      home: const SplashScreen(), 
       debugShowCheckedModeBanner: false,
     );
   }
 }
-// ini 
