@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:fl_chart/fl_chart.dart';
 import '../models/transaction.dart';
 import '../db/database_helper.dart';
 import 'add_transaction_screen.dart';
@@ -18,13 +17,22 @@ class DashboardScreen extends StatefulWidget {
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> {
+class _DashboardScreenState extends State<DashboardScreen>
+    with SingleTickerProviderStateMixin {
   List<TransactionModel> transactions = [];
+  late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
     _loadTransactions();
+    _tabController = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadTransactions() async {
@@ -35,12 +43,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
   }
 
-  double get balance {
-    double sum = 0;
-    for (var t in transactions) {
-      sum += t.isPemasukan ? t.nominal : -t.nominal;
-    }
-    return sum;
+  double get pemasukan => transactions
+      .where((t) => t.isPemasukan)
+      .fold(0.0, (sum, t) => sum + t.nominal);
+
+  double get pengeluaran => transactions
+      .where((t) => !t.isPemasukan)
+      .fold(0.0, (sum, t) => sum + t.nominal);
+
+  double get balance => pemasukan - pengeluaran;
+
+  double get pengeluaranPercent {
+    final total = pemasukan + pengeluaran;
+    if (total == 0) return 0.0;
+    return pengeluaran / total;
   }
 
   Future<void> _addNewTransaction(TransactionModel newTransaction) async {
@@ -85,56 +101,210 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  Widget buildIncomeExpensePieChart(List<TransactionModel> transactions) {
-    double pemasukan = 0;
-    double pengeluaran = 0;
+  Widget _buildSummaryCard() {
+    return Card(
+      elevation: 0,
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+        child: Column(
+          children: [
+            const Text(
+              'Saldo saat ini',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.black54,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              currencyFormat.format(balance),
+              style: const TextStyle(
+                fontSize: 26,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    children: [
+                      Icon(Icons.arrow_downward, color: Colors.green, size: 20),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'Pemasukan',
+                        style: TextStyle(
+                            color: Colors.green, fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        currencyFormat.format(pemasukan),
+                        style: const TextStyle(
+                            color: Colors.green,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(height: 40, width: 1, color: Colors.grey[300]),
+                Expanded(
+                  child: Column(
+                    children: [
+                      Icon(Icons.arrow_upward, color: Colors.red, size: 20),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'Pengeluaran',
+                        style: TextStyle(
+                            color: Colors.red, fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '-${currencyFormat.format(pengeluaran)}',
+                        style: const TextStyle(
+                            color: Colors.red,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            // Circular progress pengeluaran
+            SizedBox(
+              height: 130,
+              width: 130,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  CircularProgressIndicator(
+                    value: pengeluaranPercent,
+                    strokeWidth: 10,
+                    backgroundColor: Colors.grey[200],
+                    valueColor:
+                        AlwaysStoppedAnimation<Color>(Colors.blue[700]!),
+                  ),
+                  Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          "${(pengeluaranPercent * 100).round()}%",
+                          style: const TextStyle(
+                              fontSize: 26,
+                              color: Colors.blue,
+                              fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 2),
+                        const Text(
+                          "Pengeluaran",
+                          style: TextStyle(color: Colors.black54, fontSize: 15),
+                        )
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            )
+          ],
+        ),
+      ),
+    );
+  }
 
-    for (var tr in transactions) {
-      if (tr.isPemasukan) {
-        pemasukan += tr.nominal;
-      } else {
-        pengeluaran += tr.nominal;
-      }
-    }
+  Widget _buildTabBar() {
+    return TabBar(
+      controller: _tabController,
+      labelColor: Colors.blue[800],
+      unselectedLabelColor: Colors.grey,
+      indicatorColor: Colors.blue[800],
+      indicatorWeight: 3,
+      labelStyle: const TextStyle(fontWeight: FontWeight.bold),
+      tabs: const [
+        Tab(text: "Pemasukan"),
+        Tab(text: "Pengeluaran"),
+      ],
+    );
+  }
 
-    if (pemasukan == 0 && pengeluaran == 0) {
-      return const Padding(
-        padding: EdgeInsets.only(top: 12.0, bottom: 16),
-        child: Center(child: Text('Tidak ada data pemasukan/pengeluaran')),
+  Widget _buildTransactionList(bool showPemasukan) {
+    final filtered = transactions
+        .where((t) => t.isPemasukan == showPemasukan)
+        .toList()
+      ..sort((a, b) => b.tanggal.compareTo(a.tanggal));
+
+    if (filtered.isEmpty) {
+      return const Expanded(
+        child: Center(child: Text('Belum ada transaksi')),
       );
     }
 
-    final total = pemasukan + pengeluaran;
-    final sections = <PieChartSectionData>[
-      if (pemasukan > 0)
-        PieChartSectionData(
-          color: Colors.green,
-          value: pemasukan,
-          title: 'Pemasukan\n${(pemasukan / total * 100).toStringAsFixed(1)}%',
-          radius: 55,
-          titleStyle: const TextStyle(fontSize: 13, color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-      if (pengeluaran > 0)
-        PieChartSectionData(
-          color: Colors.red,
-          value: pengeluaran,
-          title: 'Pengeluaran\n${(pengeluaran / total * 100).toStringAsFixed(1)}%',
-          radius: 55,
-          titleStyle: const TextStyle(fontSize: 13, color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-    ];
+    return Expanded(
+      child: ListView.builder(
+        itemCount: filtered.length,
+        itemBuilder: (context, index) {
+          final transaction = filtered[index];
+          return ListTile(
+            leading: CircleAvatar(
+              backgroundColor:
+                  showPemasukan ? Colors.green[50] : Colors.red[50],
+              child: Icon(
+                showPemasukan ? Icons.arrow_downward : Icons.arrow_upward,
+                color: showPemasukan ? Colors.green : Colors.red,
+              ),
+            ),
+            title: Text(transaction.judul,
+                style: const TextStyle(fontWeight: FontWeight.bold)),
+            subtitle: Text(
+              "${transaction.kategori} • ${DateFormat('d MMM yyyy').format(transaction.tanggal)}"
+              "${transaction.deskripsi.isNotEmpty ? "\n${transaction.deskripsi}" : ""}",
+            ),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  (showPemasukan ? '' : '-') +
+                      currencyFormat.format(transaction.nominal),
+                  style: TextStyle(
+                    color: showPemasukan ? Colors.green : Colors.red,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete, color: Colors.red),
+                  onPressed: () => _deleteTransaction(transaction.id),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16.0),
-      child: SizedBox(
-        height: 180,
-        child: PieChart(
-          PieChartData(
-            sections: sections,
-            sectionsSpace: 3,
-            centerSpaceRadius: 32,
+  Widget _buildTabContent() {
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildTabBar(),
+          const SizedBox(height: 8),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildTransactionList(true),
+                _buildTransactionList(false),
+              ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -143,85 +313,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('MoneyMate')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Card(
-              color: Colors.green[50],
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Saldo saat ini',
-                      style: TextStyle(fontSize: 16),
-                    ),
-                    Text(
-                      currencyFormat.format(balance),
-                      style: const TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            // PIE CHART PEMASUKAN/ PENGELUARAN
-            buildIncomeExpensePieChart(transactions),
-            const SizedBox(height: 8),
-            const Text(
-              'Transaksi Terbaru',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            Expanded(
-              child: transactions.isEmpty
-                  ? const Center(child: Text('Belum ada transaksi'))
-                  : ListView.builder(
-                      itemCount: transactions.length,
-                      itemBuilder: (context, index) {
-                        final transaction = transactions[index];
-                        return ListTile(
-                          leading: Icon(
-                            transaction.isPemasukan
-                                ? Icons.arrow_downward
-                                : Icons.arrow_upward,
-                            color: transaction.isPemasukan
-                                ? Colors.green
-                                : Colors.red,
-                          ),
-                          title: Text(transaction.judul),
-                          subtitle: Text(
-                            '${transaction.kategori} • ${transaction.tanggal.toLocal().toString().split(' ')[0]}'
-                            '${transaction.deskripsi.isNotEmpty ? "\n${transaction.deskripsi}" : ""}',
-                          ),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                (transaction.isPemasukan ? '+ ' : '- ') +
-                                    currencyFormat.format(transaction.nominal),
-                                style: TextStyle(
-                                  color: transaction.isPemasukan
-                                      ? Colors.green
-                                      : Colors.red,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.delete, color: Colors.red),
-                                onPressed: () => _deleteTransaction(transaction.id),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-            ),
-          ],
+      backgroundColor: Colors.grey[100],
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              _buildSummaryCard(),
+              const SizedBox(height: 20),
+              _buildTabContent(),
+            ],
+          ),
         ),
       ),
       floatingActionButton: FloatingActionButton(

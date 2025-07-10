@@ -188,6 +188,10 @@ class _SearchTransactionScreenState extends State<SearchTransactionScreen> {
             const SizedBox(height: 16),
             buildPieChart(_filteredTransactions, _allCategories),
             const SizedBox(height: 16),
+            const Text(
+              'Transaksi Terbaru',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
             Expanded(
               child: _filteredTransactions.isEmpty
                   ? const Center(child: Text('Tidak ada transaksi ditemukan'))

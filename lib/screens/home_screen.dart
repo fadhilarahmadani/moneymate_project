@@ -31,7 +31,7 @@ class _HomeScreenState extends State<HomeScreen> {
           BottomNavigationBarItem(
             icon: Icon(Icons.dashboard), label: 'Dashboard'),
           BottomNavigationBarItem(
-            icon: Icon(Icons.search), label: 'Filter/Search'),
+            icon: Icon(Icons.search), label: 'Filter'),
           BottomNavigationBarItem(
             icon: Icon(Icons.storage), label: 'Kategori'),
         ],
