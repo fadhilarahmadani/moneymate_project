@@ -22,20 +22,27 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // DIUBAH: Ambil data tema saat ini
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      // DIUBAH: Gunakan warna latar dari tema
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            // Pastikan Anda memiliki logo yang cocok untuk light & dark mode
+            // atau gunakan Icon sebagai alternatif.
             Image.asset('lib/assets/logo.png', height: 100),
             const SizedBox(height: 24),
-            const Text(
+            Text(
               "MoneyMate",
-              style: TextStyle(
-                fontSize: 32,
+              style: theme.textTheme.displaySmall?.copyWith(
+                // DIUBAH: Gunakan warna primer dari tema
+                color: colorScheme.primary,
                 fontWeight: FontWeight.bold,
-                color: Colors.green,
                 letterSpacing: 2,
               ),
             ),

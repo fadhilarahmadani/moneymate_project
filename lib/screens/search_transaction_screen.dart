@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:moneymate_project/theme/app_theme.dart';
 import '../models/transaction.dart';
 import '../models/category.dart';
 import '../db/database_helper.dart';
@@ -25,6 +26,7 @@ class _SearchTransactionScreenState extends State<SearchTransactionScreen> {
   Category? _selectedCategory;
   DateTime? _selectedDateInWeek;
   DateTimeRange? _selectedWeek;
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -33,6 +35,7 @@ class _SearchTransactionScreenState extends State<SearchTransactionScreen> {
   }
 
   Future<void> _loadAllData() async {
+    setState(() => _isLoading = true);
     final db = DatabaseHelper.instance;
     final txMaps = await db.getAllTransactions();
     final catMaps = await db.getAllCategories();
@@ -40,28 +43,22 @@ class _SearchTransactionScreenState extends State<SearchTransactionScreen> {
       _allTransactions = txMaps.map((m) => TransactionModel.fromMap(m)).toList();
       _allCategories = catMaps.map((m) => Category.fromMap(m)).toList();
       _applyFilter();
+      _isLoading = false;
     });
   }
 
   void _applyFilter() {
     List<TransactionModel> list = List.from(_allTransactions);
-
-    // Filter by category
     if (_selectedCategory != null) {
       list = list.where((tr) => tr.kategori == _selectedCategory!.nama).toList();
     }
-
-    // Filter by week
     if (_selectedWeek != null) {
       list = list.where((tr) {
         final tgl = tr.tanggal;
         return !tgl.isBefore(_selectedWeek!.start) && !tgl.isAfter(_selectedWeek!.end);
       }).toList();
     }
-
-    setState(() {
-      _filteredTransactions = list;
-    });
+    setState(() => _filteredTransactions = list);
   }
 
   Future<void> _pickWeek() async {
@@ -69,14 +66,12 @@ class _SearchTransactionScreenState extends State<SearchTransactionScreen> {
     final picked = await showDatePicker(
       context: context,
       initialDate: _selectedDateInWeek ?? now,
-      firstDate: DateTime(now.year - 3),
-      lastDate: DateTime(now.year + 3),
-      helpText: 'Pilih tanggal dalam minggu yang ingin difilter',
+      firstDate: DateTime(now.year - 5),
+      lastDate: DateTime(now.year + 5),
     );
     if (picked != null) {
-      // Hitung awal dan akhir minggu (Senin-Minggu)
       final monday = picked.subtract(Duration(days: picked.weekday - 1));
-      final sunday = monday.add(const Duration(days: 6));
+      final sunday = monday.add(const Duration(days: 6, hours: 23, minutes: 59));
       setState(() {
         _selectedWeek = DateTimeRange(start: monday, end: sunday);
         _selectedDateInWeek = picked;
@@ -85,65 +80,201 @@ class _SearchTransactionScreenState extends State<SearchTransactionScreen> {
     }
   }
 
-  Widget buildPieChart(List<TransactionModel> filteredTransactions, List<Category> allCategories) {
-    // Hitung total nominal per kategori
-    final Map<String, double> categoryTotals = {};
-    for (var cat in allCategories) {
-      categoryTotals[cat.nama] = 0;
-    }
-    for (var tr in filteredTransactions) {
-      categoryTotals[tr.kategori] = (categoryTotals[tr.kategori] ?? 0) + tr.nominal * (tr.isPemasukan ? 1 : -1);
-    }
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Filter Transaksi'),
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        elevation: 0,
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : ListView( // DIUBAH: Kembali menggunakan ListView agar bisa scroll 3 card
+              padding: const EdgeInsets.all(16.0),
+              children: [
+                _buildFilterCard(),
+                const SizedBox(height: 24),
+                // DIUBAH: Memanggil Card untuk Chart dan List secara terpisah
+                _buildChartCard(),
+                const SizedBox(height: 24),
+                _buildTransactionListCard(),
+              ],
+            ),
+    );
+  }
 
-    // Hanya tampilkan kategori dengan nominal != 0
-    final entries = categoryTotals.entries.where((e) => e.value.abs() > 0).toList();
+  // --- WIDGET HELPER BARU ---
 
-    if (entries.isEmpty) {
-      return const Center(child: Text('Tidak ada data untuk pie chart'));
-    }
+  Widget _buildFilterCard() {
+  return Card(
+    elevation: 2,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    child: Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        children: [
+          DropdownButtonFormField<Category>(
+            value: _selectedCategory,
+            decoration: const InputDecoration(
+              labelText: 'Filter Kategori',
+              border: OutlineInputBorder(),
+            ),
+            items: [
+              const DropdownMenuItem<Category>(
+                  value: null, child: Text('Semua Kategori')),
+              ..._allCategories.map((cat) =>
+                  DropdownMenuItem<Category>(value: cat, child: Text(cat.nama)))
+            ],
+            onChanged: (val) {
+              setState(() => _selectedCategory = val);
+              _applyFilter();
+            },
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              // DIUBAH: Teks hanya muncul jika _selectedWeek tidak null
+              Expanded(
+                child: _selectedWeek == null
+                    ? const SizedBox.shrink() // Tidak menampilkan apa-apa
+                    : Text(
+                        '${DateFormat.yMMMd('id_ID').format(_selectedWeek!.start)} - ${DateFormat.yMMMd('id_ID').format(_selectedWeek!.end)}',
+                        style: Theme.of(context).textTheme.titleMedium,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+              ),
+              TextButton.icon(
+                icon: const Icon(Icons.calendar_today),
+                // DIUBAH: Teks tombol berubah jika sudah ada tanggal
+                label: Text(_selectedWeek == null ? 'Pilih Minggu' : 'Ganti'),
+                onPressed: _pickWeek,
+              ),
+              if (_selectedWeek != null)
+                IconButton(
+                  icon: const Icon(Icons.clear),
+                  tooltip: 'Reset Minggu',
+                  onPressed: () {
+                    setState(() {
+                      _selectedWeek = null;
+                      _selectedDateInWeek = null;
+                    });
+                    _applyFilter();
+                  },
+                )
+            ],
+          ),
+        ],
+      ),
+    ),
+  );
+}
 
-    final colors = [
-      Colors.blue, Colors.red, Colors.green, Colors.orange, Colors.purple,
-      Colors.teal, Colors.brown, Colors.cyan, Colors.amber, Colors.pink,
-    ];
+Widget _buildChartCard() {
+  Map<String, double> categoryTotals = {};
+  for (var tr in _filteredTransactions) {
+    categoryTotals[tr.kategori] = (categoryTotals[tr.kategori] ?? 0) + tr.nominal;
+  }
+  
+  final chartData = categoryTotals.entries.where((e) => e.value > 0).toList();
 
-    final total = entries.fold<double>(0, (sum, e) => sum + e.value.abs());
-
-    return SizedBox(
-      height: 200,
-      child: PieChart(
-        PieChartData(
-          sections: List.generate(entries.length, (i) {
-            final entry = entries[i];
-            return PieChartSectionData(
-              color: colors[i % colors.length],
-              value: entry.value.abs(),
-              title: '${entry.key}\n${(entry.value.abs() / total * 100).toStringAsFixed(1)}%',
-              radius: 60,
-              titleStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
-            );
-          }),
-          sectionsSpace: 2,
-          centerSpaceRadius: 32,
-        ),
+  if (chartData.isEmpty) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: const Padding(
+        padding: EdgeInsets.all(48.0),
+        child: Center(child: Text("Tidak ada data untuk ditampilkan pada grafik.")),
       ),
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    String weekLabel = 'Semua waktu';
-    if (_selectedWeek != null) {
-      weekLabel =
-          'Minggu: ${DateFormat('dd MMM yyyy').format(_selectedWeek!.start)} - ${DateFormat('dd MMM yyyy').format(_selectedWeek!.end)}';
-    }
+  final double totalValue = chartData.fold(0.0, (sum, item) => sum + item.value);
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Filter Transaksi')),
-      body: Padding(
+  // DIUBAH: Menambahkan lebih banyak variasi warna yang kontras
+  final List<Color> chartColors = [
+    AppColors.primaryAccent,   // Ungu Tua
+    AppColors.expense,         // Kuning Keemasan
+    AppColors.income,          // Ungu Medium
+    const Color(0xFF48A9A6),   // Teal (Biru Kehijauan)
+    AppColors.textDark,        // Biru Indigo
+    const Color(0xFFC38DDB),   // Ungu Muda
+    const Color(0xFFFFD668),   // Kuning Muda
+  ];
+
+  return Card(
+    elevation: 2,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    child: Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        children: [
+          SizedBox(
+            height: 200,
+            child: PieChart(
+              PieChartData(
+                sections: List.generate(chartData.length, (i) {
+                  final entry = chartData[i];
+                  final percentage = (entry.value / totalValue * 100);
+
+                  return PieChartSectionData(
+                    color: chartColors[i % chartColors.length], 
+                    value: entry.value,
+                    title: '${percentage.toStringAsFixed(0)}%',
+                    radius: 60,
+                    titleStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white, shadows: [Shadow(blurRadius: 2)]),
+                  );
+                }),
+                sectionsSpace: 2,
+                centerSpaceRadius: 40,
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Wrap(
+            spacing: 16.0,
+            runSpacing: 10.0,
+            alignment: WrapAlignment.center,
+            children: List.generate(chartData.length, (i) {
+              final entry = chartData[i];
+              return _buildLegendItem(chartColors[i % chartColors.length], entry.key);
+            }),
+          )
+        ],
+      ),
+    ),
+  );
+}
+
+// Ganti juga metode ini
+Widget _buildLegendItem(Color color, String text) {
+  return Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Container(
+        width: 12,
+        height: 12,
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(4)
+        ),
+      ),
+      const SizedBox(width: 6),
+      Text(text),
+    ],
+  );
+}
+
+  Widget _buildTransactionListCard() {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+<<<<<<< HEAD
             DropdownButtonFormField<Category>(
               value: _selectedCategory,
               decoration: const InputDecoration(labelText: 'Filter Kategori'),
@@ -218,8 +349,37 @@ class _SearchTransactionScreenState extends State<SearchTransactionScreen> {
                           ),
                         );
                       },
+=======
+            Text('Hasil Transaksi', style: Theme.of(context).textTheme.titleLarge),
+            const Divider(height: 24),
+            if (_filteredTransactions.isEmpty)
+              const Center(child: Padding(padding: EdgeInsets.all(24.0), child: Text("Tidak ada transaksi ditemukan.")))
+            else
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _filteredTransactions.length,
+                itemBuilder: (context, index) {
+                  final tr = _filteredTransactions[index];
+                  return ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(
+                      tr.isPemasukan ? Icons.arrow_downward : Icons.arrow_upward,
+                      color: tr.isPemasukan ? AppColors.income : AppColors.expense,
+>>>>>>> 9c90162e2f84c44e34a2e987574495b6c40c9e67
                     ),
-            ),
+                    title: Text(tr.judul),
+                    subtitle: Text('${tr.kategori} • ${DateFormat.yMMMd('id_ID').format(tr.tanggal)}'),
+                    trailing: Text(
+                      currencyFormat.format(tr.nominal),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: tr.isPemasukan ? AppColors.income : AppColors.expense,
+                      ),
+                    ),
+                  );
+                },
+              ),
           ],
         ),
       ),

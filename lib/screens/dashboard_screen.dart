@@ -111,7 +111,7 @@ class _DashboardScreenState extends State<DashboardScreen>
         child: Column(
           children: [
             const Text(
-              'Saldo saat ini',
+              'Selisih',
               style: TextStyle(
                 fontSize: 16,
                 color: Colors.black54,
@@ -144,9 +144,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                       Text(
                         currencyFormat.format(pemasukan),
                         style: const TextStyle(
-                            color: Colors.green,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold),
+                            color: Colors.green, fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                     ],
                   ),
@@ -166,9 +164,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                       Text(
                         '-${currencyFormat.format(pengeluaran)}',
                         style: const TextStyle(
-                            color: Colors.red,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold),
+                            color: Colors.red, fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                     ],
                   ),
@@ -187,8 +183,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                     value: pengeluaranPercent,
                     strokeWidth: 10,
                     backgroundColor: Colors.grey[200],
-                    valueColor:
-                        AlwaysStoppedAnimation<Color>(Colors.blue[700]!),
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.blue[700]!),
                   ),
                   Center(
                     child: Column(
@@ -197,9 +192,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                         Text(
                           "${(pengeluaranPercent * 100).round()}%",
                           style: const TextStyle(
-                              fontSize: 26,
-                              color: Colors.blue,
-                              fontWeight: FontWeight.bold),
+                              fontSize: 26, color: Colors.blue, fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 2),
                         const Text(
@@ -252,14 +245,13 @@ class _DashboardScreenState extends State<DashboardScreen>
           final transaction = filtered[index];
           return ListTile(
             leading: CircleAvatar(
-              backgroundColor:
-                  showPemasukan ? Colors.green[50] : Colors.red[50],
+              backgroundColor: showPemasukan ? Colors.green[50] : Colors.red[50],
               child: Icon(
                 showPemasukan ? Icons.arrow_downward : Icons.arrow_upward,
                 color: showPemasukan ? Colors.green : Colors.red,
               ),
             ),
-            title: Text(transaction.judul,
+            title: Text(showPemasukan ? "Uang Masuk" : "Uang Keluar",
                 style: const TextStyle(fontWeight: FontWeight.bold)),
             subtitle: Text(
               "${transaction.kategori} • ${DateFormat('d MMM yyyy').format(transaction.tanggal)}"
