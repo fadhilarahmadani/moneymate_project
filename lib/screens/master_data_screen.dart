@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:moneymate_project/theme/app_theme.dart'; // DIUBAH: Tambahkan import ini
 import '../db/database_helper.dart';
 import '../models/category.dart';
 
 final List<Category> defaultCategories = [
-  Category(id: '1', nama: 'Makanan', warna: 0xFFE57373, ikon: 'fastfood'),
-  Category(id: '2', nama: 'Transportasi', warna: 0xFF64B5F6, ikon: 'directions_bus'),
-  Category(id: '3', nama: 'Belanja', warna: 0xFF9575CD, ikon: 'shopping_cart'),
-  Category(id: '4', nama: 'Kesehatan', warna: 0xFF81C784, ikon: 'local_hospital'),
-  Category(id: '5', nama: 'Hiburan', warna: 0xFFFFB300, ikon: 'movie'),
+  Category(id: '1', nama: 'Makanan', warna: 0xFFF0B330, ikon: 'fastfood'),
+  Category(id: '2', nama: 'Transportasi', warna: 0xFF5C2A9D, ikon: 'directions_bus'),
+  Category(id: '3', nama: 'Belanja', warna: 0xFFA052C2, ikon: 'shopping_cart'),
+  Category(id: '4', nama: 'Kesehatan', warna: 0xFF242053, ikon: 'local_hospital'),
+  Category(id: '5', nama: 'Hiburan', warna: 0xFF5C2A9D, ikon: 'movie'),
 ];
 
 IconData iconFromString(String iconName) {
@@ -114,6 +115,7 @@ class _MasterDataScreenState extends State<MasterDataScreen> {
     }
   }
 
+  // DIUBAH: Pindahkan metode _deleteCategory ke dalam sini
   void _deleteCategory(Category cat) async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -127,7 +129,10 @@ class _MasterDataScreenState extends State<MasterDataScreen> {
           ),
           ElevatedButton(
             child: const Text('Hapus'),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Theme.of(context).colorScheme.onError,
+            ),
             onPressed: () => Navigator.pop(ctx, true),
           ),
         ],
@@ -140,48 +145,68 @@ class _MasterDataScreenState extends State<MasterDataScreen> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Master Data'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            tooltip: 'Tambah Kategori',
-            onPressed: _addCategory,
-          ),
-        ],
-      ),
-      body: FutureBuilder<List<Category>>(
-        future: _categoriesFuture,
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          final categories = snapshot.data!;
-          if (categories.isEmpty) {
-            return const Center(child: Text('Belum ada kategori'));
-          }
-          return ListView.builder(
-            itemCount: categories.length,
-            itemBuilder: (context, index) {
-              final cat = categories[index];
-              return ListTile(
+@override
+Widget build(BuildContext context) {
+  final theme = Theme.of(context);
+  return Scaffold(
+    appBar: AppBar(
+      title: const Text('Master Kategori'),
+      backgroundColor: theme.scaffoldBackgroundColor,
+      elevation: 0,
+    ),
+    body: FutureBuilder<List<Category>>(
+      future: _categoriesFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Center(child: Text('Terjadi error: ${snapshot.error}'));
+        }
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return const Center(child: Text('Belum ada kategori'));
+        }
+        final categories = snapshot.data!;
+        return ListView.builder(
+          padding:
+              const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          itemCount: categories.length,
+          itemBuilder: (context, index) {
+            final cat = categories[index];
+            return Card(
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+              margin: const EdgeInsets.symmetric(vertical: 6.0),
+              child: ListTile(
                 leading: CircleAvatar(
-                  backgroundColor: Color(cat.warna),
-                  child: Icon(iconFromString(cat.ikon), color: Colors.white),
+                  backgroundColor: theme.colorScheme.primary, // Latar Ungu
+                  child: Icon(
+                    iconFromString(cat.ikon),
+                    color: AppColors.expense, // Ikon Kuning
+                    size: 22,
+                  ),
                 ),
-                title: Text(cat.nama),
+                title: Text(cat.nama, style: theme.textTheme.titleMedium),
                 trailing: IconButton(
-                  icon: const Icon(Icons.delete, color: Colors.red),
+                  // DIUBAH: Mengganti warna ikon hapus menjadi ungu
+                  icon: Icon(Icons.delete, color: theme.colorScheme.primary.withOpacity(0.7)),
                   onPressed: () => _deleteCategory(cat),
                 ),
-              );
-            },
-          );
-        },
+              ),
+            );
+          },
+        );
+      },
+    ),
+    floatingActionButton: FloatingActionButton(
+      onPressed: _addCategory,
+      tooltip: 'Tambah Kategori',
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
       ),
-    );
-  }
+      child: const Icon(Icons.add),
+    ),
+  );
+}
 }
